@@ -4,7 +4,7 @@
  * Tyler Howarth
  * 
  * Partner: Mitch Goudy
- * Collaborators: <Any Collaborators>
+ * Collaborators: Damien Burks, Office Hours
  */
 
 /*
@@ -85,6 +85,7 @@ object HomeworkTwo extends App {
       case Or(f1,f2) => And(toNNF(Not(f1)), toNNF(Not(f2)))
       case Forall(x,f) => Exists(x, toNNF(Not(f)))
       case Exists(x,f) => Forall(x, toNNF(Not(f)))
+      case _ => f
     }
     case And(f1,f2) => And(toNNF(f1), toNNF(f2))
     case Or(f1,f2) => Or(toNNF(f1), toNNF(f2)) 
