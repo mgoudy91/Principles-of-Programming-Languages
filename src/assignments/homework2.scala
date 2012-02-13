@@ -44,27 +44,38 @@ object HomeworkTwo extends App {
   
   val emptyVarSet: List[String] = Nil
   
+  /*** Part A: Set of Variables ***/
   def removeVar(x: String, set: VarSet): VarSet = set match{
     case Nil => Nil
     case h :: t => if (h==x) t else h :: removeVar(x, t)
   }
   
-  //def testRemoveVar(removeVar: (String,VarSet) => VarSet): Boolean = false
+  def testRemoveVar(removeVar: (String,VarSet) => VarSet): Boolean = {
+    (removeVar("one", List("one", "two", "three")) == List("two", "three")) &&
+    (removeVar("one", List("two", "three")) == List("two", "three")) &&
+    (removeVar("one", List("one")) == Nil) &&
+    (removeVar("one", List()) == Nil)
+  }
   
   /* You can run your test in any number of ways, including using an assert expression. */
-  //assert(testRemoveVar(removeVar))
+  assert(testRemoveVar(removeVar))
   
   def insertVar(x: String, set: VarSet): VarSet = set match{
     case Nil => x :: set
     case h :: t => if(h==x) set else h :: insertVar(x,t)
   }
-  //val testList = List("four")
-  //insertVar("four", testList)
+  
+  def testInsertVar(insertVar: (String,VarSet) => VarSet): Boolean = {
+    (insertVar("one", List("one", "two", "three")) == List("one", "two", "three")) &&
+    (insertVar("one", List("two", "three")) == List("one", "two", "three")) &&
+    (insertVar("one", List("one")) == List("one")) &&
+    (insertVar("one", List()) == List("one"))
+  }
+  assert(testInsertVar(insertVar))
+  /*** End Part A ***/
   
   
-  
-  //def testInsertVar(insertVar: (String,VarSet) => VarSet): Boolean = false
-  /*
+  /*** Part B: Negation Normal Form ***/
   def toNNF(f: Formula): Formula = f match{
     case Not(g) => g match{
       case B(value) => B(!value)
@@ -81,8 +92,7 @@ object HomeworkTwo extends App {
     case Exists(x,h) => Exists(x, toNNF(h))
     case _ => f
   }
-  */
-  /*
+  
   def testToNNF(toNNF: Formula => Formula): Boolean = {
     (toNNF(Not(B(true))) == B(false)) &&
     (toNNF(Not(B(false))) == B(true)) &&
@@ -92,7 +102,12 @@ object HomeworkTwo extends App {
     (toNNF(Not(Forall("x",Var("f")))) == Exists("x",Not(Var("f")))) &&
     (toNNF(Not(Exists("x",Var("f")))) == Forall("x", Not(Var("f"))))
   }
-  */
+  assert(testToNNF(toNNF))
+  /*** End Part B ***/
+  
+  /*** Part C: Local Simplification ***/
+  
+  // part i
   def simplifyNot(f: Formula): Formula = f match{
     case Not(g) => g match {
       case B(value) => B(!value)
@@ -101,26 +116,49 @@ object HomeworkTwo extends App {
     case _ => f
   }
   
-  //def testSimplifyNot(simplifyNot: Formula => Formula): Boolean = false
+  def testSimplifyNot(simplifyNot: Formula => Formula): Boolean = {
+	(simplifyNot(Not(B(true))) == B(false)) &&
+	(simplifyNot(Not(B(false))) == B(true)) &&
+	(simplifyNot(Not(Var("x"))) == Not(Var("x")))
+  }
+  assert(testSimplifyNot(simplifyNot))
   
+  // part ii
   def simplifyAnd(f: Formula): Formula = f match {
     case And(B(true), f1) => f1
     case And(f1, B(true)) => f1
     case And(B(false), f1) => B(false)
     case And(f1, B(false)) => B(false)
+    case _ => f
   }
   
-  //def testSimplifyAnd(simplifyAnd: Formula => Formula): Boolean = false
+  def testSimplifyAnd(simplifyAnd: Formula => Formula): Boolean = {
+    (simplifyAnd(And(B(true), Var("x"))) == Var("x")) &&
+    (simplifyAnd(And(Var("x"), B(true))) == Var("x")) &&
+    (simplifyAnd(And(B(false), Var("x"))) == B(false)) &&
+    (simplifyAnd(And(Var("x"), B(false))) == B(false))
+  }
+  assert(testSimplifyAnd(simplifyAnd))
   
+  //part iii
   def simplifyOr(f: Formula): Formula = f match{
     case Or(B(true), f1) => B(true)
     case Or(f1, B(true)) => B(true)
     case Or(B(false), f1) => f1
     case Or(f1, B(false)) => f1
+    case _ => f
   }
   
-  //def testSimplifyOr(simplifyOr: Formula => Formula): Boolean = false
+  def testSimplifyOr(simplifyOr: Formula => Formula): Boolean = {
+	(simplifyOr(Or(B(true), Var("x"))) == Var("x")) &&
+    (simplifyOr(Or(Var("x"), B(true))) == Var("x")) &&
+    (simplifyOr(Or(B(false), Var("x"))) == Var("x")) &&
+    (simplifyOr(Or(Var("x"), B(false))) == Var("x")) 
+  }
+  /*** End Part C ***/
   
+  
+  /*** Part D: Global Simplification ***/
   def simplifyM(f: Formula): Formula = f match{
     case Not(g) => simplifyNot(Not(simplifyM(g)))
     case And(f1,f2) => simplifyAnd(And(simplifyM(f1),simplifyM(f2)))
@@ -131,28 +169,47 @@ object HomeworkTwo extends App {
   }
   
   //def testSimplifyM(simplifyM: Formula => Formula): Boolean = false
+  /** End Part D **/
   
+  
+  /*** Part E: Global Simplification with a Visitor ***/
+  
+  // Part i
   def visit(v: Formula => Formula, f: Formula): Formula = f match{
-    case B(value) => v(B(value))
+    //do we need these?
+  	case B(value) => v(B(value))
     case Var(value) => v(Var(value))
+    // ?
     case And(f1,f2) => v(And(visit(v,f1),visit(v,f2)))
     case Or(f1,f2) => v(Or(visit(v,f1),visit(v,f2)))
     case Not(g) => v(Not(visit(v,g)))
     case Forall(x,m) => v(Forall(x, visit(v,m)))
     case Exists(x,m) => v(Exists(x, visit(v,m)))
+    case _ => v(f)
   }
   
   //visit(Not, And(B(true),B(false)))
   
   //def testVisit(visit: ((Formula => Formula), Formula) => Formula): Boolean = false
-  
-  def simplifyV(f: Formula): Formula = visit(simplifyM, f)
+  // Part ii
+  def simplifyV(f: Formula): Formula = {
+    def simplify_h(f:Formula): Formula = f match{
+      case And(f1,f2) => simplifyAnd(f)
+      case Or(f1,f2) => simplifyOr(f)
+      case Not(f) => simplifyNot(f)
+      case _ => f
+    }
+    visit(simplify_h, f)
+  }
   
   //def testSimplifyV(simplifyV: Formula => Formula): Boolean = false
+  /*** End Part E ***/
   
+  
+  /*** Part F: Evaluation and Satisfiability ***/
+  // part i
   def eval(a: Assignment, f: Formula): Boolean = f match{
     case B(value) => value
-    case 
     case p => eval(a, simplifyV(p))
   }
 
