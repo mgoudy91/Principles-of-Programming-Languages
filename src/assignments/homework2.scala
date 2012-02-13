@@ -202,15 +202,29 @@ object HomeworkTwo extends App {
     visit(simplify_h, f)
   }
   
-  //def testSimplifyV(simplifyV: Formula => Formula): Boolean = false
+  def testSimplifyV(simplifyV: Formula => Formula): Boolean = {
+    simplifyV(And(B(true), Var("x"))) == Var("x")
+    simplifyV(Not(And(Not(Or(Var("x"),B(false))),Not(And(B(true), Or(B(false), Var("b"))))))) == And(Var("x"), Var("b"))
+    simplifyV(And(Var("a"), Var("b"))) == And(Var("a"),Var("b"))
+    simplifyV(Forall("x", Or(And(B(true), B(false)), Var("z")))) == Forall("x", Var("z"))
+  }
   /*** End Part E ***/
   
   
   /*** Part F: Evaluation and Satisfiability ***/
   // part i
-  def eval(a: Assignment, f: Formula): Boolean = f match{
-    case B(value) => value
-    case p => eval(a, simplifyV(p))
+  def eval(a: Assignment, f: Formula): Boolean = {
+    val b = simplifyV(f)
+    b match {
+      case(B(false)) => false
+      case(B(true)) => true
+      case(Var(s)) => a(s)
+      case(And(f1,f2)) => eval(a,f1) && eval(a,f2)
+      case(Or(f1,f2)) => eval(a,f1) || eval(a, f2)
+      case(Not(f)) => !eval(a,f)
+      case Forall(x,f) => eval(bind(a,x,true),f) && eval(bind(a,x,false),f)
+      case Exists(x,f) => eval(bind(a,x,true),f) || eval(bind(a,x,false),f)
+    }
   }
 
   val xAssign = bind(empty, "x", true)
@@ -219,9 +233,15 @@ object HomeworkTwo extends App {
   
   eval(yAssign, And(Var("x"),Var("y")))
   
-  /*
-  def testEval(eval: (Assignment,Formula) => Boolean): Boolean = false
   
+  def testEval(eval: (Assignment,Formula) => Boolean): Boolean = {
+    val a = Map("x"-> true, "y"->false, "z"->false)
+    val c = empty
+    eval(a, And(Or(Var("x"), Var("y")), Var("z"))) == false
+    eval(a, Forall("y", And(Var("y"), Var("z") ))) == false
+    
+  }
+  /*
   def freeVars(f: Formula): VarSet = throw new UnsupportedOperationException
   
   def normalizeVarSet(set: VarSet): VarSet = set.sort({_ < _})
